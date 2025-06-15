@@ -1,0 +1,81 @@
+{
+    "posts": [
+        {
+            "id": 1,
+            "title": "First post",
+            "content": "This is the first post.",
+            "author": "John Doe",
+            "date": "2025-06-15",
+            "likes": 9,
+            "comments": [
+                {
+                    "author": "bla",
+                    "content": "blabla",
+                    "date": "2025-06-15 01:33:09"
+                },
+                {
+                    "author": "Guten morgen",
+                    "content": "Angriff auf code debuggen.....",
+                    "date": "2025-06-15 09:43:02"
+                },
+                {
+                    "author": "hgvjvjgv",
+                    "content": "kjglgzvjvh",
+                    "date": "2025-06-15 10:35:21"
+                },
+                {
+                    "author": "j",
+                    "content": "j",
+                    "date": "2025-06-15 10:35:30"
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "title": "Sonntag morgen",
+            "content": "Starten des debugges",
+            "author": "Ozan Cicek",
+            "date": "2025-06-15",
+            "likes": 4,
+            "comments": [
+                {
+                    "author": "Manuel ist wieder arbeitsf\u00e4hig",
+                    "content": "na dann....",
+                    "date": "2025-06-15 18:21:07"
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "title": "titel",
+            "content": "Like Button funktioniert nicht",
+            "author": "Ozan Cicek",
+            "date": "2025-06-15",
+            "likes": 1
+        },
+        {
+            "id": 7,
+            "title": "2.versuch",
+            "content": "Like button",
+            "author": "Ozan Cicek",
+            "date": "2025-06-15",
+            "likes": 1
+        },
+        {
+            "id": 8,
+            "title": "3.Versuch",
+            "content": "Delete button in der gleichen h\u00f6he",
+            "author": "Ozan Cicek",
+            "date": "2025-06-15",
+            "likes": 1
+        },
+        {
+            "id": 9,
+            "title": "Projekt fertig",
+            "content": "Endlich ist das Projekt erledigt.....",
+            "author": "Ozan  Cicek",
+            "date": "2025-06-15",
+            "likes": 1
+        }
+    ]
+}

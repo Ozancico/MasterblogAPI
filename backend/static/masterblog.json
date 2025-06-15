@@ -1,0 +1,254 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Masterblog API",
+    "version": "1.0.0",
+    "description": "A RESTful API for a blogging platform"
+  },
+  "host": "localhost:5002",
+  "basePath": "/api",
+  "schemes": ["http"],
+  "tags": [
+    {
+      "name": "Posts",
+      "description": "Operations with blog posts"
+    }
+  ],
+  "paths": {
+    "/posts": {
+      "get": {
+        "tags": ["Posts"],
+        "summary": "Get all posts",
+        "description": "Retrieves all blog posts, optionally sorted by any field",
+        "parameters": [
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Field to sort by",
+            "required": false,
+            "type": "string",
+            "enum": ["title", "content", "author", "date"]
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "description": "Sort direction",
+            "required": false,
+            "type": "string",
+            "enum": ["asc", "desc"],
+            "default": "asc"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Post"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid sort parameters"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Posts"],
+        "summary": "Create a new post",
+        "description": "Creates a new blog post",
+        "parameters": [
+          {
+            "name": "post",
+            "in": "body",
+            "description": "Post object to be created",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": ["title", "content", "author"],
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "Title of the post"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Content of the post"
+                },
+                "author": {
+                  "type": "string",
+                  "description": "Author of the post"
+                },
+                "date": {
+                  "type": "string",
+                  "description": "Date of the post (YYYY-MM-DD format)",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Post created successfully",
+            "schema": {
+              "$ref": "#/definitions/Post"
+            }
+          },
+          "400": {
+            "description": "Missing required fields or invalid date format"
+          }
+        }
+      }
+    },
+    "/posts/search": {
+      "get": {
+        "tags": ["Posts"],
+        "summary": "Search posts",
+        "description": "Search posts by title, content, author, or date",
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "description": "Search term for title",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "content",
+            "in": "query",
+            "description": "Search term for content",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "description": "Search term for author",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "description": "Search term for date (YYYY-MM-DD format)",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Post"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/posts/{postId}": {
+      "parameters": [
+        {
+          "name": "postId",
+          "in": "path",
+          "required": true,
+          "type": "integer",
+          "description": "ID of the post"
+        }
+      ],
+      "put": {
+        "tags": ["Posts"],
+        "summary": "Update a post",
+        "description": "Updates an existing blog post",
+        "parameters": [
+          {
+            "name": "post",
+            "in": "body",
+            "description": "Updated post data",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "New title for the post"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "New content for the post"
+                },
+                "author": {
+                  "type": "string",
+                  "description": "New author for the post"
+                },
+                "date": {
+                  "type": "string",
+                  "description": "New date for the post (YYYY-MM-DD format)",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post updated successfully",
+            "schema": {
+              "$ref": "#/definitions/Post"
+            }
+          },
+          "404": {
+            "description": "Post not found"
+          },
+          "400": {
+            "description": "Invalid date format"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Posts"],
+        "summary": "Delete a post",
+        "description": "Deletes a blog post",
+        "responses": {
+          "200": {
+            "description": "Post deleted successfully"
+          },
+          "404": {
+            "description": "Post not found"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Post": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Unique identifier of the post"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the post"
+        },
+        "content": {
+          "type": "string",
+          "description": "Content of the post"
+        },
+        "author": {
+          "type": "string",
+          "description": "Author of the post"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the post (YYYY-MM-DD format)"
+        }
+      }
+    }
+  }
+}

@@ -1,89 +1,157 @@
-// Function that runs once the window is fully loaded
+/**
+ * Main JavaScript file for the blog frontend application.
+ * Handles all client-side functionality including post management,
+ * comments, likes, and UI interactions.
+ */
+
+// Initialize the application when the window loads
 window.onload = function() {
-    // Attempt to retrieve the API base URL from the local storage
-    var savedBaseUrl = localStorage.getItem('apiBaseUrl');
-    // If a base URL is found in local storage, load the posts
-    if (savedBaseUrl) {
-        document.getElementById('api-base-url').value = savedBaseUrl;
-        loadPosts();
-    }
+    // Load posts immediately when page loads
+    loadPosts();
 
     // Set default date to today for the date input
     document.getElementById('post-date').valueAsDate = new Date();
 }
 
-// Function to toggle dropdown menus
+/**
+ * Toggle visibility of dropdown menus
+ * @param {string} dropdownId - ID of the dropdown to toggle
+ */
 function toggleDropdown(dropdownId) {
-    event.stopPropagation();  // Prevent event from bubbling up
+    event.stopPropagation();  // Prevent event bubbling
 
-    // Close all dropdowns first
-    var dropdowns = document.getElementsByClassName("dropdown-content");
-    for (var i = 0; i < dropdowns.length; i++) {
-        if (dropdowns[i].id !== dropdownId) {
-            dropdowns[i].classList.remove('show');
+    // Close all other dropdowns first
+    const dropdowns = document.getElementsByClassName("dropdown-content");
+    Array.from(dropdowns).forEach(dropdown => {
+        if (dropdown.id !== dropdownId) {
+            dropdown.classList.remove('show');
         }
-    }
+    });
 
     // Toggle the selected dropdown
     document.getElementById(dropdownId).classList.toggle("show");
 }
 
-// Close dropdown if user clicks outside
+// Close dropdowns when clicking outside
 window.onclick = function(event) {
-    // Don't close if clicking on a select element or its options
-    if (event.target.tagName === 'SELECT' ||
-        event.target.tagName === 'OPTION' ||
-        event.target.tagName === 'INPUT') {
+    // Don't close if clicking on form elements
+    if (['SELECT', 'OPTION', 'INPUT'].includes(event.target.tagName)) {
         return;
     }
 
-    // Don't close if clicking inside the dropdown content
+    // Don't close if clicking inside dropdown content
     if (event.target.closest('.dropdown-content')) {
         return;
     }
 
-    // Close all dropdowns if clicking outside
-    var dropdowns = document.getElementsByClassName("dropdown-content");
-    for (var i = 0; i < dropdowns.length; i++) {
-        var openDropdown = dropdowns[i];
-        if (openDropdown.classList.contains('show')) {
-            openDropdown.classList.remove('show');
+    // Close all open dropdowns
+    const dropdowns = document.getElementsByClassName("dropdown-content");
+    Array.from(dropdowns).forEach(dropdown => {
+        if (dropdown.classList.contains('show')) {
+            dropdown.classList.remove('show');
         }
+    });
+}
+
+/**
+ * Toggle visibility of comments section for a post
+ * @param {number} postId - ID of the post
+ */
+function toggleComments(postId) {
+    const commentsSection = document.getElementById(`comments-section-${postId}`);
+    const toggleButton = document.getElementById(`toggle-comments-${postId}`);
+
+    if (commentsSection.style.display === 'none') {
+        commentsSection.style.display = 'block';
+        toggleButton.innerHTML = '<i class="fas fa-chevron-up"></i>';
+    } else {
+        commentsSection.style.display = 'none';
+        toggleButton.innerHTML = '<i class="fas fa-chevron-down"></i>';
     }
 }
 
-// Function to fetch all the posts from the API and display them on the page
+/**
+ * Load and display all blog posts
+ */
 function loadPosts() {
-    // Retrieve the base URL from the input field and save it to local storage
-    var baseUrl = document.getElementById('api-base-url').value;
+    const baseUrl = document.getElementById('api-base-url').value;
     localStorage.setItem('apiBaseUrl', baseUrl);
 
-    // Use the Fetch API to send a GET request to the /posts endpoint
-    fetch(baseUrl + '/posts')
-        .then(response => response.json())  // Parse the JSON data from the response
-        .then(data => {  // Once the data is ready, we can use it
-            // Clear out the post container first
+    fetch(`${baseUrl}/posts`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
             const postContainer = document.getElementById('post-container');
             postContainer.innerHTML = '';
 
-            // Sort posts by date in descending order (newest first)
             data.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            // For each post in the response, create a new post element and add it to the page
             data.forEach(post => {
                 const postDiv = document.createElement('div');
                 postDiv.className = 'post';
-                // Format the date for better readability
                 const formattedDate = new Date(post.date).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
                 });
+
+                // Initialize likes and comments if not present
+                const likes = post.likes || 0;
+                const comments = post.comments || [];
+                const hasLiked = localStorage.getItem(`liked-post-${post.id}`) === 'true';
+
+                const commentsHtml = comments.map(comment => `
+                    <div class="comment">
+                        <p class="comment-content">${comment.content}</p>
+                        <p class="comment-meta">By ${comment.author} on ${comment.date}</p>
+                    </div>
+                `).join('');
+
                 postDiv.innerHTML = `
-                    <h2>${post.title}</h2>
-                    <p>${post.content}</p>
-                    <p class="post-meta">By ${post.author} on ${formattedDate}</p>
-                    <button onclick="deletePost(${post.id})">Delete</button>`;
+                    <div class="post-content">
+                        <h2>${post.title}</h2>
+                        <p>${post.content}</p>
+                        <p class="post-meta">By ${post.author} on ${formattedDate}</p>
+                        <p class="post-id">ID: ${post.id}</p>
+                    </div>
+
+                    <div class="post-actions">
+                        <div class="action-group-left">
+                            <button onclick="updatePost(${post.id})" class="update-btn" title="Edit Post">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="likePost(${post.id})" id="like-btn-${post.id}"
+                                    class="like-btn ${hasLiked ? 'liked' : ''}"
+                                    ${hasLiked ? 'disabled' : ''}
+                                    title="${hasLiked ? 'Already liked' : 'Like post'}">
+                                👍 <span class="like-count">${likes}</span>
+                            </button>
+                            <button onclick="openCommentModal(${post.id})" class="comment-btn" title="Add Comment">
+                                <i class="far fa-comment"></i> <span class="comment-count">${comments.length}</span>
+                            </button>
+                            <button id="toggle-comments-${post.id}"
+                                    onclick="toggleComments(${post.id})"
+                                    class="toggle-comments-btn"
+                                    title="Toggle Comments">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </div>
+                        <div class="action-group-right">
+                            <button onclick="deletePost(${post.id})" class="delete-btn" title="Delete Post">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="comments-section-${post.id}" class="comments-section" style="display: none;">
+                        <h3><i class="far fa-comments"></i> Comments (${comments.length})</h3>
+                        ${commentsHtml}
+                    </div>`;
+
                 postContainer.appendChild(postDiv);
             });
         })
@@ -93,23 +161,22 @@ function loadPosts() {
         });
 }
 
-// Function to send a POST request to the API to add a new post
+/**
+ * Add a new blog post
+ */
 function addPost() {
-    // Retrieve the values from the input fields
-    var baseUrl = document.getElementById('api-base-url').value;
-    var postTitle = document.getElementById('post-title').value.trim();
-    var postContent = document.getElementById('post-content').value.trim();
-    var postAuthor = document.getElementById('post-author').value.trim();
-    var postDate = document.getElementById('post-date').value;
+    const baseUrl = document.getElementById('api-base-url').value;
+    const postTitle = document.getElementById('post-title').value.trim();
+    const postContent = document.getElementById('post-content').value.trim();
+    const postAuthor = document.getElementById('post-author').value.trim();
+    const postDate = document.getElementById('post-date').value;
 
-    // Validate required fields
     if (!postTitle || !postContent || !postAuthor) {
         alert('Please fill in all required fields (Title, Content, and Author)');
         return;
     }
 
-    // Use the Fetch API to send a POST request to the /posts endpoint
-    fetch(baseUrl + '/posts', {
+    fetch(`${baseUrl}/posts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -127,11 +194,9 @@ function addPost() {
     })
     .then(post => {
         console.log('Post added:', post);
-        // Clear the input fields after successful post
         document.getElementById('post-title').value = '';
         document.getElementById('post-content').value = '';
-        // Don't clear author as it's likely to be reused
-        loadPosts(); // Reload the posts after adding a new one
+        loadPosts();
     })
     .catch(error => {
         console.error('Error:', error);
@@ -139,16 +204,18 @@ function addPost() {
     });
 }
 
-// Function to send a DELETE request to the API to delete a post
+/**
+ * Delete a blog post
+ * @param {number} postId - ID of the post to delete
+ */
 function deletePost(postId) {
     if (!confirm('Are you sure you want to delete this post?')) {
         return;
     }
 
-    var baseUrl = document.getElementById('api-base-url').value;
+    const baseUrl = document.getElementById('api-base-url').value;
 
-    // Use the Fetch API to send a DELETE request to the specific post's endpoint
-    fetch(baseUrl + '/posts/' + postId, {
+    fetch(`${baseUrl}/posts/${postId}`, {
         method: 'DELETE'
     })
     .then(response => {
@@ -156,7 +223,7 @@ function deletePost(postId) {
             throw new Error('Network response was not ok');
         }
         console.log('Post deleted:', postId);
-        loadPosts(); // Reload the posts after deleting one
+        loadPosts();
     })
     .catch(error => {
         console.error('Error:', error);
@@ -164,19 +231,20 @@ function deletePost(postId) {
     });
 }
 
-// Function to search posts based on selected field and search term
+/**
+ * Search posts based on selected criteria
+ */
 function searchPosts() {
-    var baseUrl = document.getElementById('api-base-url').value;
-    var searchField = document.getElementById('search-field').value;
-    var searchTerm = document.getElementById('search-term').value.trim();
+    const baseUrl = document.getElementById('api-base-url').value;
+    const searchField = document.getElementById('search-field').value;
+    const searchTerm = document.getElementById('search-term').value.trim();
 
     if (!searchField || !searchTerm) {
-        alert('Please select a field and enter a search term');
+        alert('Please select a search field and enter a search term');
         return;
     }
 
-    // Build the search URL with query parameters
-    var searchUrl = `${baseUrl}/posts/search?${searchField}=${encodeURIComponent(searchTerm)}`;
+    const searchUrl = `${baseUrl}/posts/search?${searchField}=${encodeURIComponent(searchTerm)}`;
 
     fetch(searchUrl)
         .then(response => response.json())
@@ -197,28 +265,76 @@ function searchPosts() {
                     month: 'long',
                     day: 'numeric'
                 });
+
+                // Initialize likes and comments if not present
+                const likes = post.likes || 0;
+                const comments = post.comments || [];
+                const hasLiked = localStorage.getItem(`liked-post-${post.id}`) === 'true';
+
+                const commentsHtml = comments.map(comment => `
+                    <div class="comment">
+                        <p class="comment-content">${comment.content}</p>
+                        <p class="comment-meta">By ${comment.author} on ${comment.date}</p>
+                    </div>
+                `).join('');
+
                 postDiv.innerHTML = `
-                    <h2>${post.title}</h2>
-                    <p>${post.content}</p>
-                    <p class="post-meta">By ${post.author} on ${formattedDate}</p>
-                    <button onclick="deletePost(${post.id})">Delete</button>`;
+                    <div class="post-content">
+                        <h2>${post.title}</h2>
+                        <p>${post.content}</p>
+                        <p class="post-meta">By ${post.author} on ${formattedDate}</p>
+                        <p class="post-id">ID: ${post.id}</p>
+                    </div>
+
+                    <div class="post-actions">
+                        <div class="action-group-left">
+                            <button onclick="updatePost(${post.id})" class="update-btn" title="Edit Post">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="likePost(${post.id})" id="like-btn-${post.id}" class="like-btn">
+                                👍 <span class="like-count">${likes}</span>
+                            </button>
+                            <button onclick="openCommentModal(${post.id})" class="comment-btn" title="Add Comment">
+                                <i class="far fa-comment"></i> <span class="comment-count">${comments.length}</span>
+                            </button>
+                            <button id="toggle-comments-${post.id}"
+                                    onclick="toggleComments(${post.id})"
+                                    class="toggle-comments-btn"
+                                    title="Toggle Comments">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </div>
+                        <div class="action-group-right">
+                            <button onclick="deletePost(${post.id})" class="delete-btn" title="Delete Post">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="comments-section-${post.id}" class="comments-section" style="display: none;">
+                        <h3><i class="far fa-comments"></i> Comments (${comments.length})</h3>
+                        ${commentsHtml}
+                    </div>`;
+
                 postContainer.appendChild(postDiv);
             });
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Failed to search posts. Please try again.');
+            alert('Error searching posts. Please try again.');
         });
 }
 
-// Function to sort posts based on selected field and direction
+/**
+ * Sort posts based on selected field and direction
+ */
 function sortPosts() {
     var baseUrl = document.getElementById('api-base-url').value;
     var sortField = document.getElementById('sort-field').value;
     var sortDirection = document.getElementById('sort-direction').value;
 
     if (!sortField) {
-        alert('Please select a field to sort by');
+        alert('Please select a sort field');
         return;
     }
 
@@ -239,16 +355,249 @@ function sortPosts() {
                     month: 'long',
                     day: 'numeric'
                 });
+
+                // Initialize likes and comments if not present
+                const likes = post.likes || 0;
+                const comments = post.comments || [];
+                const hasLiked = localStorage.getItem(`liked-post-${post.id}`) === 'true';
+
+                const commentsHtml = comments.map(comment => `
+                    <div class="comment">
+                        <p class="comment-content">${comment.content}</p>
+                        <p class="comment-meta">By ${comment.author} on ${comment.date}</p>
+                    </div>
+                `).join('');
+
                 postDiv.innerHTML = `
-                    <h2>${post.title}</h2>
-                    <p>${post.content}</p>
-                    <p class="post-meta">By ${post.author} on ${formattedDate}</p>
-                    <button onclick="deletePost(${post.id})">Delete</button>`;
+                    <div class="post-content">
+                        <h2>${post.title}</h2>
+                        <p>${post.content}</p>
+                        <p class="post-meta">By ${post.author} on ${formattedDate}</p>
+                        <p class="post-id">ID: ${post.id}</p>
+                    </div>
+
+                    <div class="post-actions">
+                        <div class="action-group-left">
+                            <button onclick="updatePost(${post.id})" class="update-btn" title="Edit Post">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="likePost(${post.id})" id="like-btn-${post.id}" class="like-btn">
+                                👍 <span class="like-count">${likes}</span>
+                            </button>
+                            <button onclick="openCommentModal(${post.id})" class="comment-btn" title="Add Comment">
+                                <i class="far fa-comment"></i> <span class="comment-count">${comments.length}</span>
+                            </button>
+                            <button id="toggle-comments-${post.id}"
+                                    onclick="toggleComments(${post.id})"
+                                    class="toggle-comments-btn"
+                                    title="Toggle Comments">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </div>
+                        <div class="action-group-right">
+                            <button onclick="deletePost(${post.id})" class="delete-btn" title="Delete Post">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="comments-section-${post.id}" class="comments-section" style="display: none;">
+                        <h3><i class="far fa-comments"></i> Comments (${comments.length})</h3>
+                        ${commentsHtml}
+                    </div>`;
+
                 postContainer.appendChild(postDiv);
             });
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Failed to sort posts. Please try again.');
+            alert('Error sorting posts. Please try again.');
         });
+}
+
+/**
+ * Like a post
+ * @param {number} postId - ID of the post to like
+ */
+async function likePost(postId) {
+    // Check if the user has already liked this post
+    if (localStorage.getItem(`liked-post-${postId}`) === 'true') {
+        alert('You have already liked this post!');
+        return;
+    }
+
+    const baseUrl = document.getElementById('api-base-url').value;
+    try {
+        const response = await fetch(`${baseUrl}/posts/${postId}/like`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+
+        // Save the like status in localStorage
+        localStorage.setItem(`liked-post-${postId}`, 'true');
+
+        // Update the like counter in the DOM
+        const likeButton = document.querySelector(`#like-btn-${postId}`);
+        const likeCount = likeButton.querySelector('.like-count');
+        likeCount.textContent = data.likes;
+
+        // Disable the button and add the 'liked' class
+        likeButton.disabled = true;
+        likeButton.classList.add('liked');
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error liking the post');
+    }
+}
+
+let currentPostId = null;
+
+/**
+ * Open the comment modal for a post
+ * @param {number} postId - ID of the post
+ */
+function openCommentModal(postId) {
+    currentPostId = postId;
+    const modal = document.getElementById('comment-modal');
+    modal.style.display = 'block';
+
+    // Close modal when clicking on X
+    const closeBtn = document.getElementsByClassName('close')[0];
+    closeBtn.onclick = function() {
+        modal.style.display = 'none';
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+}
+
+/**
+ * Submit a new comment to the API
+ */
+function submitComment() {
+    if (!currentPostId) return;
+
+    const author = document.getElementById('comment-author').value.trim();
+    const content = document.getElementById('comment-content').value.trim();
+    const baseUrl = document.getElementById('api-base-url').value;
+
+    if (!author || !content) {
+        alert('Please fill in both name and comment');
+        return;
+    }
+
+    fetch(`${baseUrl}/posts/${currentPostId}/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ author, content })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+    })
+    .then(() => {
+        // Clear form and close modal
+        document.getElementById('comment-author').value = '';
+        document.getElementById('comment-content').value = '';
+        document.getElementById('comment-modal').style.display = 'none';
+
+        // Reload posts to show new comment
+        loadPosts();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to add comment. Please try again.');
+    });
+}
+
+let postToUpdate = null;
+
+/**
+ * Open the update modal for a post
+ * @param {number} postId - ID of the post to update
+ */
+function updatePost(postId) {
+    postToUpdate = postId;
+    const baseUrl = document.getElementById('api-base-url').value;
+
+    // Fetch current post data
+    fetch(baseUrl + '/posts')
+        .then(response => response.json())
+        .then(data => {
+            const post = data.find(p => p.id === postId);
+            if (post) {
+                // Fill the update form with current values
+                document.getElementById('update-title').value = post.title;
+                document.getElementById('update-content').value = post.content;
+                document.getElementById('update-author').value = post.author;
+                document.getElementById('update-date').value = post.date;
+
+                // Show the modal
+                document.getElementById('update-modal').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load post data for update.');
+        });
+}
+
+/**
+ * Close the update modal
+ */
+function closeUpdateModal() {
+    document.getElementById('update-modal').style.display = 'none';
+    postToUpdate = null;
+}
+
+/**
+ * Submit the updated post data to the API
+ */
+function submitUpdate() {
+    if (!postToUpdate) return;
+
+    const baseUrl = document.getElementById('api-base-url').value;
+    const updatedData = {
+        title: document.getElementById('update-title').value.trim(),
+        content: document.getElementById('update-content').value.trim(),
+        author: document.getElementById('update-author').value.trim(),
+        date: document.getElementById('update-date').value
+    };
+
+    // Validate required fields
+    if (!updatedData.title || !updatedData.content || !updatedData.author) {
+        alert('Please fill in all required fields (Title, Content, and Author)');
+        return;
+    }
+
+    fetch(`${baseUrl}/posts/${postToUpdate}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData)
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+    })
+    .then(() => {
+        closeUpdateModal();
+        loadPosts();  // Reload all posts to show the update
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to update post. Please try again.');
+    });
 }

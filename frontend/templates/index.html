@@ -3,24 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A modern blog platform for sharing posts and ideas">
     <title>Blog Posts</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="static/styles.css">
 </head>
 <body>
     <div class="container">
         <h1>📚 Blog Posts</h1>
-        <div class="input-field">
-            <input type="text" id="api-base-url" placeholder="Enter API Base URL" value="http://127.0.0.1:5002/api">
-            <button onclick="loadPosts()">Load Posts</button>
-        </div>
+
+        <!-- Hidden input for API base URL -->
+        <input type="hidden" id="api-base-url" value="http://127.0.0.1:5002/api">
 
         <!-- Search and Sort Controls -->
         <div class="input-field control-buttons">
             <div class="dropdown">
-                <button class="dropbtn" onclick="toggleDropdown('searchDropdown')">Search Posts</button>
+                <button class="dropbtn" onclick="toggleDropdown('searchDropdown')">
+                    <i class="fas fa-search"></i> Search Posts
+                </button>
                 <div id="searchDropdown" class="dropdown-content">
-                    <select id="search-field">
+                    <select id="search-field" aria-label="Search field">
                         <option value="">Select Search Field</option>
                         <option value="id">ID</option>
                         <option value="title">Title</option>
@@ -34,9 +37,11 @@
             </div>
 
             <div class="dropdown">
-                <button class="dropbtn" onclick="toggleDropdown('sortDropdown')">Sort Posts</button>
+                <button class="dropbtn" onclick="toggleDropdown('sortDropdown')">
+                    <i class="fas fa-sort"></i> Sort Posts
+                </button>
                 <div id="sortDropdown" class="dropdown-content">
-                    <select id="sort-field">
+                    <select id="sort-field" aria-label="Sort field">
                         <option value="">Select Sort Field</option>
                         <option value="id">ID</option>
                         <option value="title">Title</option>
@@ -44,7 +49,7 @@
                         <option value="author">Author</option>
                         <option value="date">Date</option>
                     </select>
-                    <select id="sort-direction">
+                    <select id="sort-direction" aria-label="Sort direction">
                         <option value="asc">Ascending</option>
                         <option value="desc">Descending</option>
                     </select>
@@ -54,14 +59,39 @@
         </div>
 
         <div class="input-field">
-            <input type="text" id="post-title" placeholder="Enter Post Title">
-            <input type="text" id="post-content" placeholder="Enter Post Content">
-            <input type="text" id="post-author" placeholder="Enter Author Name">
-            <input type="date" id="post-date">
-            <button onclick="addPost()">Add Post</button>
+            <input type="text" id="post-title" placeholder="Enter Post Title" required aria-label="Post title">
+            <input type="text" id="post-content" placeholder="Enter Post Content" required aria-label="Post content">
+            <input type="text" id="post-author" placeholder="Enter Author Name" required aria-label="Author name">
+            <input type="date" id="post-date" required aria-label="Post date">
+            <button onclick="addPost()"><i class="fas fa-plus"></i> Add Post</button>
         </div>
-        <div id="post-container">
+
+        <div id="post-container" role="main" aria-label="Blog posts container">
             <!-- Blog posts will be inserted here by JavaScript -->
+        </div>
+
+        <!-- Comment Modal -->
+        <div id="comment-modal" class="modal" role="dialog" aria-labelledby="comment-modal-title">
+            <div class="modal-content">
+                <span class="close" aria-label="Close modal">&times;</span>
+                <h2 id="comment-modal-title"><i class="far fa-comment"></i> Add Comment</h2>
+                <input type="text" id="comment-author" placeholder="Your Name" required aria-label="Your name">
+                <textarea id="comment-content" placeholder="Your Comment" required aria-label="Your comment"></textarea>
+                <button onclick="submitComment()">Submit Comment</button>
+            </div>
+        </div>
+
+        <!-- Update Modal -->
+        <div id="update-modal" class="modal" role="dialog" aria-labelledby="update-modal-title">
+            <div class="modal-content">
+                <span class="close" onclick="closeUpdateModal()" aria-label="Close modal">&times;</span>
+                <h2 id="update-modal-title"><i class="fas fa-edit"></i> Update Post</h2>
+                <input type="text" id="update-title" placeholder="Update Title" required aria-label="Update post title">
+                <textarea id="update-content" placeholder="Update Content" required aria-label="Update post content"></textarea>
+                <input type="text" id="update-author" placeholder="Update Author" required aria-label="Update author name">
+                <input type="date" id="update-date" required aria-label="Update post date">
+                <button onclick="submitUpdate()">Update Post</button>
+            </div>
         </div>
     </div>
 
