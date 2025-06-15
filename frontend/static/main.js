@@ -215,7 +215,6 @@ function loadPosts() {
                         <h2>${post.title}</h2>
                         <p>${post.content}</p>
                         <p class="post-meta">By ${post.author} on ${formattedDate}</p>
-                        <p class="post-id">ID: ${post.id}</p>
                     </div>
 
                     <div class="post-actions">
@@ -395,7 +394,6 @@ function searchPosts() {
                         <h2>${post.title}</h2>
                         <p>${post.content}</p>
                         <p class="post-meta">By ${post.author} on ${formattedDate}</p>
-                        <p class="post-id">ID: ${post.id}</p>
                     </div>
 
                     <div class="post-actions">
@@ -485,7 +483,6 @@ function sortPosts() {
                         <h2>${post.title}</h2>
                         <p>${post.content}</p>
                         <p class="post-meta">By ${post.author} on ${formattedDate}</p>
-                        <p class="post-id">ID: ${post.id}</p>
                     </div>
 
                     <div class="post-actions">
@@ -716,4 +713,3 @@ function submitUpdate() {
         alert('Failed to update post. Please try again.');
     });
 }
-
