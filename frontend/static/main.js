@@ -4,6 +4,10 @@
  * comments, likes, and UI interactions.
  */
 
+// Theme and pagination state
+let currentPage = 1;
+const postsPerPage = 5;
+
 // Initialize the application when the window loads
 window.onload = function() {
     // Load posts immediately when page loads
@@ -11,6 +15,32 @@ window.onload = function() {
 
     // Set default date to today for the date input
     document.getElementById('post-date').valueAsDate = new Date();
+
+    // Initialize theme
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+}
+
+/**
+ * Toggle between light and dark theme
+ */
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateThemeIcon(newTheme);
+}
+
+/**
+ * Update the theme toggle button icon
+ * @param {string} theme - Current theme ('light' or 'dark')
+ */
+function updateThemeIcon(theme) {
+    const icon = document.querySelector('#theme-toggle i');
+    icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
 }
 
 /**
@@ -71,11 +101,74 @@ function toggleComments(postId) {
 }
 
 /**
+ * Show or hide the loading spinner
+ * @param {boolean} show - Whether to show or hide the spinner
+ */
+function toggleLoading(show) {
+    const spinner = document.getElementById('loading-spinner');
+    const container = document.getElementById('post-container');
+    spinner.style.display = show ? 'block' : 'none';
+    container.classList.toggle('loading', show);
+}
+
+/**
+ * Create pagination controls
+ * @param {number} totalPosts - Total number of posts
+ */
+function createPagination(totalPosts) {
+    const totalPages = Math.ceil(totalPosts / postsPerPage);
+    const paginationContainer = document.createElement('div');
+    paginationContainer.className = 'pagination';
+
+    // Previous button
+    const prevButton = document.createElement('button');
+    prevButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
+    prevButton.disabled = currentPage === 1;
+    prevButton.onclick = () => changePage(currentPage - 1);
+    paginationContainer.appendChild(prevButton);
+
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i;
+        pageButton.classList.toggle('active', i === currentPage);
+        pageButton.onclick = () => changePage(i);
+        paginationContainer.appendChild(pageButton);
+    }
+
+    // Next button
+    const nextButton = document.createElement('button');
+    nextButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
+    nextButton.disabled = currentPage === totalPages;
+    nextButton.onclick = () => changePage(currentPage + 1);
+    paginationContainer.appendChild(nextButton);
+
+    // Add pagination to the container
+    const container = document.getElementById('post-container');
+    const existingPagination = container.querySelector('.pagination');
+    if (existingPagination) {
+        container.removeChild(existingPagination);
+    }
+    container.appendChild(paginationContainer);
+}
+
+/**
+ * Change the current page
+ * @param {number} page - Page number to switch to
+ */
+function changePage(page) {
+    currentPage = page;
+    loadPosts();
+}
+
+/**
  * Load and display all blog posts
  */
 function loadPosts() {
     const baseUrl = document.getElementById('api-base-url').value;
     localStorage.setItem('apiBaseUrl', baseUrl);
+
+    toggleLoading(true);
 
     fetch(`${baseUrl}/posts`)
         .then(response => {
@@ -88,9 +181,15 @@ function loadPosts() {
             const postContainer = document.getElementById('post-container');
             postContainer.innerHTML = '';
 
+            // Sort posts by date
             data.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            data.forEach(post => {
+            // Calculate pagination
+            const startIndex = (currentPage - 1) * postsPerPage;
+            const endIndex = startIndex + postsPerPage;
+            const paginatedPosts = data.slice(startIndex, endIndex);
+
+            paginatedPosts.forEach(post => {
                 const postDiv = document.createElement('div');
                 postDiv.className = 'post';
                 const formattedDate = new Date(post.date).toLocaleDateString('en-US', {
@@ -154,10 +253,16 @@ function loadPosts() {
 
                 postContainer.appendChild(postDiv);
             });
+
+            // Create pagination controls
+            createPagination(data.length);
         })
         .catch(error => {
             console.error('Error:', error);
             alert('Failed to load posts. Please check your API URL.');
+        })
+        .finally(() => {
+            toggleLoading(false);
         });
 }
 
@@ -205,7 +310,7 @@ function addPost() {
 }
 
 /**
- * Delete a blog post
+ * Delete a blog post with animation
  * @param {number} postId - ID of the post to delete
  */
 function deletePost(postId) {
@@ -213,22 +318,29 @@ function deletePost(postId) {
         return;
     }
 
-    const baseUrl = document.getElementById('api-base-url').value;
-
-    fetch(`${baseUrl}/posts/${postId}`, {
-        method: 'DELETE'
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        console.log('Post deleted:', postId);
-        loadPosts();
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to delete post. Please try again.');
-    });
+    const postElement = document.querySelector(`.post:has([onclick="deletePost(${postId})"])`);
+    if (postElement) {
+        postElement.classList.add('deleting');
+        // Wait for animation to finish
+        setTimeout(() => {
+            const baseUrl = document.getElementById('api-base-url').value;
+            fetch(`${baseUrl}/posts/${postId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                console.log('Post deleted:', postId);
+                loadPosts();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to delete post. Please try again.');
+                postElement.classList.remove('deleting');
+            });
+        }, 300); // Match animation duration
+    }
 }
 
 /**
@@ -408,6 +520,9 @@ function sortPosts() {
 
                 postContainer.appendChild(postDiv);
             });
+
+            // Create pagination controls
+            createPagination(data.length);
         })
         .catch(error => {
             console.error('Error:', error);
@@ -601,3 +716,4 @@ function submitUpdate() {
         alert('Failed to update post. Please try again.');
     });
 }
+

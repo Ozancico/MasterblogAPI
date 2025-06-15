@@ -76,6 +76,21 @@
             "author": "Ozan  Cicek",
             "date": "2025-06-15",
             "likes": 1
+        },
+        {
+            "id": 10,
+            "title": "Test 5",
+            "content": "Darkmodus und Pagination test 1",
+            "author": "Ozan Cicek",
+            "date": "2025-06-15",
+            "likes": 1,
+            "comments": [
+                {
+                    "author": "Ozan Cicek",
+                    "content": "Funktioniert",
+                    "date": "2025-06-15 19:21:13"
+                }
+            ]
         }
     ]
 }
